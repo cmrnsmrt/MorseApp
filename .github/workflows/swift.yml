@@ -10,13 +10,14 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+   build:
+     runs-on: macos-latest
 
-    runs-on: macos-latest
+     steps:
+       - uses: actions/checkout@v2
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+       - run: |
+           pwd
+           swift package init --type library
+           xcodebuild clean
+           xcodebuild test -project Morse.xcodeproj
