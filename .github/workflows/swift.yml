@@ -1,23 +1,58 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
-name: Swift
+name: iOS Build and Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/*'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-   build:
-     runs-on: macos-latest
+  build-and-test:
+    runs-on: macos-latest
 
-     steps:
-       - uses: actions/checkout@v2
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-       - run: |
-           pwd
-           swift package init --type library
-           xcodebuild clean
-           xcodebuild test -project Morse.xcodeproj
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'
+
+    - name: Set up CocoaPods
+      run: |
+        gem install cocoapods
+        pod install --project-directory=YourProjectDirectory
+
+    - name: Set up Xcode
+      run: |
+        sudo xcode-select -s /Applications/Xcode_14.0.app/Contents/Developer
+        sudo xcodebuild -license accept
+
+    - name: Build
+      run: |
+        xcodebuild clean build \
+          -workspace YourProject.xcworkspace \
+          -scheme YourScheme \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 12,OS=15.0' \
+          ONLY_ACTIVE_ARCH=NO
+
+    - name: Run tests
+      run: |
+        xcodebuild test \
+          -workspace YourProject.xcworkspace \
+          -scheme YourScheme \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 12,OS=15.0' \
+          ONLY_ACTIVE_ARCH=NO
+
+    - name: Archive artifacts
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: XcodeLogs
+        path: ~/Library/Developer/Xcode/DerivedData/**/*.xcresult
